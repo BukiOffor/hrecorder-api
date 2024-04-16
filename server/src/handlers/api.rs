@@ -1,3 +1,4 @@
+use actix_web::web::{Data, Path};
 use actix_web::{get,post,Responder,HttpResponse, web::Json};
 use crate::handlers::types::MorpheusVault;
 use crate::handlers::{utils, types::{
@@ -5,6 +6,7 @@ use crate::handlers::{utils, types::{
      Wallet, SignWitnessStatement,WitnessStatement,
      AccountVault, DidStatement
     }} ;
+use crate::{models::user::User, handlers::types::MongoRepo};
 
 
 
@@ -72,7 +74,6 @@ pub async fn sign_witness_statement(
 }
 
 
-
 #[post("/api/verify_signed_statement")]
 pub async fn verify_signed_statement(
     body: Json<WitnessStatement>,
@@ -125,4 +126,42 @@ pub async fn validate_statement_with_did(
     let req = body.0;
     let result = utils::validate_statement_with_did(&req.data, &req.doc).unwrap();
     HttpResponse::Ok().json(result)
+}
+
+
+#[post("/user")]
+pub async fn create_user(db: Data<MongoRepo>, new_user: Json<User>) -> HttpResponse {
+    let data = User {
+        id: None,
+            first_name: new_user.first_name.to_owned(),
+            last_name: new_user.last_name.to_owned(),
+            email: new_user.email.to_owned(),
+            username: new_user.username.to_owned(),
+            password: new_user.password.to_owned(),
+            dob: new_user.dob.to_owned(),
+            address: new_user.address.to_owned(),
+            city: new_user.city.to_owned(),
+            zipcode: new_user.zipcode.to_owned(),
+            country: new_user.country.to_owned(),
+            wallet_address: new_user.wallet_address.to_owned(),
+            did: new_user.did.to_owned()
+    };
+    let user_detail = db.create_user(data).await;
+    match user_detail {
+        Ok(user) => HttpResponse::Ok().json(user),
+        Err(err) => HttpResponse::InternalServerError().body(err.to_string()),
+    }
+}
+
+#[get("/user/{id}")]
+pub async fn get_user(db: Data<MongoRepo>, path: Path<String>) -> HttpResponse {
+    let id = path.into_inner();
+    if id.is_empty() {
+        return HttpResponse::BadRequest().body("invalid ID");
+    }
+    let user_detail = db.get_user(&id).await;
+    match user_detail {
+        Ok(user) => HttpResponse::Ok().json(user),
+        Err(err) => HttpResponse::InternalServerError().body(err.to_string()),
+    }
 }
