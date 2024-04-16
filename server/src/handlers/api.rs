@@ -1,12 +1,20 @@
-use actix_web::web::{Data, Path};
-use actix_web::{get,post,Responder,HttpResponse, web::Json};
+use actix_web::{
+    get, post,
+    web::{Data, Path, Json, ReqData},
+    HttpResponse, Responder,
+};
+use actix_web_httpauth::extractors::basic::BasicAuth;
+use argonautica::{Hasher, Verifier};
+use hmac::{Hmac, Mac};
+use jwt::SignWithKey;
+use sha2::Sha256;
 use crate::handlers::types::MorpheusVault;
 use crate::handlers::{utils, types::{
     GetWallet,GenerateTransaction,SignDidWallet,
      Wallet, SignWitnessStatement,WitnessStatement,
      AccountVault, DidStatement
     }} ;
-use crate::{models::user::User, handlers::types::MongoRepo};
+use crate::{models::user::User, handlers::types::MongoRepo, TokenClaims};
 
 
 
@@ -131,20 +139,39 @@ pub async fn validate_statement_with_did(
 
 #[post("/user")]
 pub async fn create_user(db: Data<MongoRepo>, new_user: Json<User>) -> HttpResponse {
+    let hash_secret = std::env::var("HASH_SECRET").expect("HASH_SECRET must be set!");
+    let mut hasher = Hasher::default();
+    let hash = hasher
+        .with_password(new_user.password.to_owned())
+        .with_secret_key(hash_secret)
+        .hash()
+        .unwrap();
+    let mnemonic = utils::generate_phrase().unwrap();
+    let key = std::env::var("KEY").expect("HASH_SECRET must be set!");
+    let morpheus_vault = utils::get_morpheus_vault(mnemonic.to_owned(), key.to_owned())
+        .expect("Morpheus Vault could not be initialised");
+    let hyd_vault = utils::get_hyd_vault(mnemonic.to_string(), key.to_owned())
+        .expect("Hyd Vault could not be init");
+    let did = utils::generate_did_by_morpheus(morpheus_vault.to_owned(), key.to_owned())
+        .expect("Did could not be generated");
+    let wallet_address = utils::get_wallet(hyd_vault.to_owned(), 0)
+        .expect("Address could not be gotten");
+
+
     let data = User {
         id: None,
             first_name: new_user.first_name.to_owned(),
             last_name: new_user.last_name.to_owned(),
             email: new_user.email.to_owned(),
             username: new_user.username.to_owned(),
-            password: new_user.password.to_owned(),
+            password: hash.to_owned(),
             dob: new_user.dob.to_owned(),
             address: new_user.address.to_owned(),
             city: new_user.city.to_owned(),
             zipcode: new_user.zipcode.to_owned(),
             country: new_user.country.to_owned(),
-            wallet_address: new_user.wallet_address.to_owned(),
-            did: new_user.did.to_owned()
+            wallet_address,
+            did
     };
     let user_detail = db.create_user(data).await;
     match user_detail {

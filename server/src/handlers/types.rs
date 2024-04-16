@@ -75,6 +75,16 @@ pub struct DidStatement {
     pub data: String,
     pub doc: String,
 }
+
+
+#[derive(Validate, Deserialize, Serialize, )]
+pub struct UserObject{
+    pub id: String,
+    pub morpheus: String,
+}
+
+
+
 #[derive(Validate)]
 pub struct MongoRepo {
     col: Collection<User>,
