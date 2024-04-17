@@ -81,9 +81,15 @@ pub struct DidStatement {
 pub struct UserObject{
     pub id: String,
     pub morpheus: String,
+    pub hyd: String,
+    pub did: String,
+    pub address: String,
 }
-
-
+#[derive(Deserialize, Serialize)]
+pub struct UserData {
+    pub data: UserObject,
+    pub mnemonic: String
+}
 
 #[derive(Validate)]
 pub struct MongoRepo {
@@ -113,6 +119,7 @@ impl MongoRepo {
             email: new_user.email,
             username: new_user.username,
             password: new_user.password,
+            password_hint: new_user.password_hint,
             dob: new_user.dob,
             address: new_user.address,
             city: new_user.city,
@@ -130,9 +137,19 @@ impl MongoRepo {
         Ok(user)
     }
 
-    pub async fn get_user(&self, id: &String) -> Result<User, Error> {
+    pub async fn get_id(&self, id: &String) -> Result<User, Error> {
         let obj_id = ObjectId::parse_str(id).unwrap();
         let filter = doc! {"_id": obj_id};
+        let user_detail = self
+            .col
+            .find_one(filter, None)
+            .await
+            .ok()
+            .expect("Error getting user's detail");
+        Ok(user_detail.unwrap())
+    }
+    pub async fn get_user(&self, username: &String) -> Result<User, Error> {
+        let filter = doc! {"username": username};
         let user_detail = self
             .col
             .find_one(filter, None)

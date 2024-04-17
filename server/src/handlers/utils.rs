@@ -187,8 +187,8 @@ pub fn sign_did_statement(
     let signer = PrivateKeySigner::new(private_key);
     let response = signer.sign(data).unwrap();
     let kpub = response.0;
-    let signed_data = response.1;
-    Ok((signed_data.to_string(), kpub.to_string()))
+    let signature = response.1;
+    Ok((kpub.to_string(),signature.to_string()))
 }
 
 pub fn sign_witness_statement(vault: String, password: String, data: &str) -> Result<String, Err> {

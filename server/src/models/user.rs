@@ -10,13 +10,14 @@ pub struct User {
     pub username: String,
     pub email: String,
     pub password: String,
+    pub password_hint: String,
     pub dob: Option<String>,
     pub address: Option<String>,
     pub city : Option<String>,
     pub zipcode : Option<String>,
     pub country: Option<String>,
-    pub wallet_address: String,
-    pub did: String
+    pub wallet_address: Option<String>,
+    pub did: Option<String>
 }
 
 

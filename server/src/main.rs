@@ -11,7 +11,7 @@ use handlers::api::{
     sign_did_statement,
     generate_did_by_morpheus,sign_witness_statement,
     verify_signed_statement,generate_nonce,get_morpheus_vault,
-    get_hyd_vault,validate_statement_with_did,create_user,
+    get_hyd_vault,validate_statement_with_did,create_user,basic_auth
 };
 use handlers::types::MongoRepo;
 use log::LevelFilter;
@@ -31,7 +31,7 @@ use sha2::Sha256;
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct TokenClaims {
-    id: i32,
+    id: String,
 }
 
 
@@ -88,6 +88,7 @@ async fn main() -> std::io::Result<()> {
             .service(verify_signed_statement)
             .service(generate_nonce)
             .service(create_user)
+            .service(basic_auth)
             .service(
                 web::scope("")
                     .wrap(bearer_middleware)

@@ -12,7 +12,7 @@ use crate::handlers::types::MorpheusVault;
 use crate::handlers::{utils, types::{
     GetWallet,GenerateTransaction,SignDidWallet,
      Wallet, SignWitnessStatement,WitnessStatement,
-     AccountVault, DidStatement
+     AccountVault, DidStatement, UserObject, UserData
     }} ;
 use crate::{models::user::User, handlers::types::MongoRepo, TokenClaims};
 
@@ -126,7 +126,6 @@ pub async fn get_new_acc_on_vault(
 
 
 #[post("/api/validate_statement_with_did")]
-
 pub async fn validate_statement_with_did(
     body: Json<DidStatement>, 
 
@@ -147,7 +146,8 @@ pub async fn create_user(db: Data<MongoRepo>, new_user: Json<User>) -> HttpRespo
         .hash()
         .unwrap();
     let mnemonic = utils::generate_phrase().unwrap();
-    let key = std::env::var("KEY").expect("HASH_SECRET must be set!");
+    //let key = std::env::var("KEY").expect("HASH_SECRET must be set!");
+    let key = new_user.password.to_owned();
     let morpheus_vault = utils::get_morpheus_vault(mnemonic.to_owned(), key.to_owned())
         .expect("Morpheus Vault could not be initialised");
     let hyd_vault = utils::get_hyd_vault(mnemonic.to_string(), key.to_owned())
@@ -165,30 +165,88 @@ pub async fn create_user(db: Data<MongoRepo>, new_user: Json<User>) -> HttpRespo
             email: new_user.email.to_owned(),
             username: new_user.username.to_owned(),
             password: hash.to_owned(),
+            password_hint: new_user.password_hint.to_owned(),
             dob: new_user.dob.to_owned(),
             address: new_user.address.to_owned(),
             city: new_user.city.to_owned(),
             zipcode: new_user.zipcode.to_owned(),
             country: new_user.country.to_owned(),
-            wallet_address,
-            did
+            wallet_address: Some(wallet_address.to_owned()),
+            did: Some(did.to_owned())
     };
     let user_detail = db.create_user(data).await;
     match user_detail {
-        Ok(user) => HttpResponse::Ok().json(user),
+        Ok(user) => {
+            let id = user.inserted_id.as_object_id().unwrap().to_string();
+            let data = UserObject{
+                id,
+                morpheus: morpheus_vault,
+                hyd: hyd_vault,
+                did,
+                address: wallet_address
+            };
+            let user_data = UserData {
+                data,
+                mnemonic
+            };
+            HttpResponse::Ok().json(user_data)
+        },
         Err(err) => HttpResponse::InternalServerError().body(err.to_string()),
     }
 }
 
-#[get("/user/{id}")]
-pub async fn get_user(db: Data<MongoRepo>, path: Path<String>) -> HttpResponse {
-    let id = path.into_inner();
-    if id.is_empty() {
-        return HttpResponse::BadRequest().body("invalid ID");
+#[get("/auth")]
+async fn basic_auth(db: Data<MongoRepo>, credentials: BasicAuth) -> impl Responder {
+    log::info!("Received basic auth request");
+    let jwt_secret: Hmac<Sha256> = Hmac::new_from_slice(
+        std::env::var("JWT_SECRET")
+            .expect("JWT_SECRET must be set!")
+            .as_bytes(),
+    )
+    .unwrap();
+    let username = credentials.user_id();
+    let password = credentials.password();
+
+    match password {
+        None => HttpResponse::Unauthorized().json("Must provide username and password"),
+        Some(pass) => {
+            match get_user(db, username.to_string()).await
+            {
+                Ok(user) => {
+                    let hash_secret =
+                        std::env::var("HASH_SECRET").expect("HASH_SECRET must be set!");
+                    let mut verifier = Verifier::default();
+                    let is_valid = verifier
+                        .with_hash(user.password)
+                        .with_password(pass)
+                        .with_secret_key(hash_secret)
+                        .verify()
+                        .unwrap();
+
+                    if is_valid {
+                        let id = user.id.unwrap().to_hex();
+                        log::info!("User {} logged in", id);
+                        let claims = TokenClaims { id };
+                        let token_str = claims.sign_with_key(&jwt_secret).unwrap();
+                        HttpResponse::Ok().json(token_str)
+                    } else {
+                        HttpResponse::Unauthorized().json("Incorrect username or password")
+                    }
+                }
+                Err(error) => HttpResponse::InternalServerError().json(format!("{:?}", error)),
+            }
+        }
     }
-    let user_detail = db.get_user(&id).await;
+}
+
+
+
+
+
+async fn get_user(db: Data<MongoRepo>, username:String) -> Result<User, mongodb::bson::extjson::de::Error> {
+    let user_detail = db.get_user(&username).await;
     match user_detail {
-        Ok(user) => HttpResponse::Ok().json(user),
-        Err(err) => HttpResponse::InternalServerError().body(err.to_string()),
+        Ok(user) => Ok(user),
+        Err(err) => Err(err),
     }
 }
