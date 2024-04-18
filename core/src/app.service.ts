@@ -6,9 +6,12 @@ import {
   Network,
   NetworkConfig,
 } from '@internet-of-people/sdk';
-import { User, WalletObject } from 'dto/user.dto';
+import { AuthObject, User, WalletObject } from 'dto/user.dto';
 import { MongoClient } from 'mongodb';
+import { getUser } from '../utils';
 import { HydraWallet, MorpheusWallet } from 'dto/wallet.dto';
+import * as bcrypt from 'bcrypt';
+import { WitnessEvent } from 'dto/events.dto';
 @Injectable()
 export class AppService {
   private uri: string = process.env.URI;
@@ -73,15 +76,17 @@ export class AppService {
     const db = client.db(this.database_name);
     const collection = db.collection(this.collection_name);
     const mnemonic: string = this.generate_phrase();
-    const hyd: HydraWallet = this.createHydVault(mnemonic, user.password);
+    const password = user.password;
+    const hyd: HydraWallet = this.createHydVault(mnemonic, password);
     const morpheus: MorpheusWallet = this.createMorpheusVault(
       mnemonic,
-      user.password,
+      password,
     );
 
     try {
       user.wallet = hyd.address;
       user.did = morpheus.did;
+      user.password = await bcrypt.hash(password, 10);
       const response = await collection.insertOne(user);
       console.log(`${response.insertedId} successfully inserted.\n`);
       const id = response.insertedId;
@@ -103,6 +108,28 @@ export class AppService {
       console.error(
         `Something went wrong trying to insert the new documents: ${err}\n`,
       );
+      throw new InternalServerErrorException('Something Went Wrong ');
+    }
+  }
+
+  async basicAuth(auth: AuthObject): Promise<boolean> {
+    const user = await getUser(auth.id);
+    const isMatch = await bcrypt.compare(auth.password, user.password);
+    return isMatch;
+  }
+
+  async signWitnessStatement(data: WitnessEvent): Promise<string> {
+    const morpheus = this.getMorpheusPlugin(data.vault);
+    const did: Crypto.Did = morpheus.pub.personas.did(0);
+    const keyId: Crypto.KeyId = did.defaultKeyId();
+    const Kpr: Crypto.MorpheusPrivate = morpheus.priv(data.password);
+    //const statement = JSON.parse(data.statement);
+    try {
+      console.log('Signing Witness Statement');
+      const response = Kpr.signWitnessStatement(keyId, data.statement);
+      return JSON.stringify(response);
+    } catch (err) {
+      console.log(err);
       throw new InternalServerErrorException('Something Went Wrong ');
     }
   }

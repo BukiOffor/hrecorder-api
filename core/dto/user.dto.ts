@@ -18,3 +18,8 @@ export class WalletObject {
   data: object;
   mnemonic: string;
 }
+
+export class AuthObject {
+  id: string;
+  password: string;
+}

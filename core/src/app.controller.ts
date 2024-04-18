@@ -1,6 +1,7 @@
-import { Controller, Body, Get, Post } from '@nestjs/common';
-import { User, WalletObject } from 'dto/user.dto';
+import { Controller, Body, Post } from '@nestjs/common';
+import { AuthObject, User, WalletObject } from 'dto/user.dto';
 import { AppService } from './app.service';
+import { WitnessEvent } from 'dto/events.dto';
 
 @Controller()
 export class AppController {
@@ -11,9 +12,13 @@ export class AppController {
     return this.appService.createUser(body);
   }
 
-  @Get('/')
-  getHello(): string {
-    console.log(this.appService.getHello());
-    return this.appService.getHello();
+  @Post('auth')
+  getHello(@Body() body: AuthObject): Promise<boolean> {
+    return this.appService.basicAuth(body);
+  }
+
+  @Post('sign/witness_statement')
+  signWitnessStatement(@Body() body: WitnessEvent): Promise<string> {
+    return this.appService.signWitnessStatement(body);
   }
 }
