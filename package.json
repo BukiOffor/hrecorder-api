@@ -1,6 +1,0 @@
-{
-  "dependencies": {
-    "@internet-of-people/sdk": "^5.1.0",
-    "@nestjs/config": "^3.2.2"
-  }
-}
