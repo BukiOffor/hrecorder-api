@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import {
   Crypto,
   Layer1,
@@ -6,34 +6,31 @@ import {
   Network,
   NetworkConfig,
 } from '@internet-of-people/sdk';
-
+import { User, WalletObject } from 'dto/user.dto';
+import { MongoClient } from 'mongodb';
+import { HydraWallet, MorpheusWallet } from 'dto/wallet.dto';
 @Injectable()
 export class AppService {
+  private uri: string = process.env.URI;
+  private database_name: string = 'HRecorder';
+  private collection_name: string = 'Users';
+
   getHello(): string {
-    return 'Hello World!';
+    return process.env.URI;
   }
 
   getMorpheusPlugin(vault_data: string): Crypto.MorpheusPlugin {
     const vault_json = JSON.parse(vault_data);
     const vault = Crypto.Vault.load(vault_json);
-    //Crypto.MorpheusPlugin.init(vault, password);
     const morpheusPlugin = Crypto.MorpheusPlugin.get(vault);
-    // Select the first DID
-    const did = morpheusPlugin.pub.personas.did(0);
-    console.log('Using DID: ', did.toString());
     return morpheusPlugin;
   }
 
-  getHydraPlugin(vault_data: string, password: string): Crypto.HydraPlugin {
-    //const network = Network.Testnet;
+  getHydraPlugin(vault_data: string): Crypto.HydraPlugin {
     const vault_json = JSON.parse(vault_data);
     const vault = Crypto.Vault.load(vault_json);
     const parameters = new Crypto.HydraParameters(Crypto.Coin.Hydra.Testnet, 0);
-    //Crypto.HydraPlugin.init(vault, password, parameters);
     const hydraPlugin = Crypto.HydraPlugin.get(vault, parameters);
-    const senderPrivate = hydraPlugin.priv(password);
-    const senderAddress = hydraPlugin.pub.key(0).address;
-    console.log('Sender address: ', senderAddress);
     return hydraPlugin;
   }
 
@@ -42,19 +39,71 @@ export class AppService {
     return phrase;
   }
 
-  createHydVault(phrase: string, password: string): string {
+  createHydVault(phrase: string, password: string): HydraWallet {
     const vault = Crypto.Vault.create(phrase, '', password);
     const parameters = new Crypto.HydraParameters(Crypto.Coin.Hydra.Testnet, 0);
     // initialize Hydra Vault
     Crypto.HydraPlugin.init(vault, password, parameters);
+    const hydraPlugin = Crypto.HydraPlugin.get(vault, parameters);
+    const address = hydraPlugin.pub.key(0).address;
     const hyd_vault = JSON.stringify(vault.save());
-    return hyd_vault;
+    const hydra: HydraWallet = {
+      vault: hyd_vault,
+      address,
+    };
+    return hydra;
   }
 
-  createMorpheusVault(phrase: string, password: string): string {
+  createMorpheusVault(phrase: string, password: string): MorpheusWallet {
     const vault = Crypto.Vault.create(phrase, '', password);
     Crypto.MorpheusPlugin.init(vault, password);
-    const morpheus_vault = JSON.stringify(vault.save());
-    return morpheus_vault;
+    const morpheus_vault: string = JSON.stringify(vault.save());
+    const morpheusPlugin = Crypto.MorpheusPlugin.get(vault);
+    const did = morpheusPlugin.pub.personas.did(0);
+    const morpheus: MorpheusWallet = {
+      vault: morpheus_vault,
+      did: did.toString(),
+    };
+    return morpheus;
+  }
+
+  async createUser(user: User): Promise<WalletObject> {
+    const client = new MongoClient(this.uri);
+    await client.connect();
+    const db = client.db(this.database_name);
+    const collection = db.collection(this.collection_name);
+    const mnemonic: string = this.generate_phrase();
+    const hyd: HydraWallet = this.createHydVault(mnemonic, user.password);
+    const morpheus: MorpheusWallet = this.createMorpheusVault(
+      mnemonic,
+      user.password,
+    );
+
+    try {
+      user.wallet = hyd.address;
+      user.did = morpheus.did;
+      const response = await collection.insertOne(user);
+      console.log(`${response.insertedId} successfully inserted.\n`);
+      const id = response.insertedId;
+      const data = {
+        id: id,
+        hyd_vault: hyd.vault,
+        morpheus_vault: morpheus.vault,
+        wallet: hyd.address,
+        did: morpheus.did,
+      };
+      const wallet_object: WalletObject = {
+        data,
+        mnemonic,
+      };
+      await client.close();
+      return wallet_object;
+    } catch (err) {
+      await client.close();
+      console.error(
+        `Something went wrong trying to insert the new documents: ${err}\n`,
+      );
+      throw new InternalServerErrorException('Something Went Wrong ');
+    }
   }
 }
