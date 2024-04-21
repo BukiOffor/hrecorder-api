@@ -72,8 +72,8 @@ async fn validator(
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     env_logger::builder().filter_level(LevelFilter::Info).init();
-    log::info!("server initialized and running at port 8088");
-    log::info!("Running server at http://127.0.0.1:8088");
+    log::info!("server initialized and running at port 3000");
+    log::info!("Running server at http://127.0.0.1:3000");
     
     let db = MongoRepo::init().await;
     let db_data = Data::new(db);
@@ -105,7 +105,7 @@ async fn main() -> std::io::Result<()> {
                 )        
         
         })
-        .bind("127.0.0.1:8088")?
+        .bind("127.0.0.1:3000")?
         .run()
         .await
 }

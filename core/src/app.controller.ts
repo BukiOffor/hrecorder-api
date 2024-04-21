@@ -1,7 +1,15 @@
-import { Controller, Body, Post } from '@nestjs/common';
+import {
+  Controller,
+  Body,
+  Post,
+  UseInterceptors,
+  UploadedFile,
+} from '@nestjs/common';
 import { AuthObject, User, WalletObject } from 'dto/user.dto';
 import { AppService } from './app.service';
 import { WitnessEvent } from 'dto/events.dto';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { Device } from 'dto/wallet.dto';
 
 @Controller()
 export class AppController {
@@ -17,8 +25,18 @@ export class AppController {
     return this.appService.basicAuth(body);
   }
 
-  @Post('sign/witness_statement')
+  @Post('morpheus/sign_statement')
   signWitnessStatement(@Body() body: WitnessEvent): Promise<string> {
     return this.appService.signWitnessStatement(body);
+  }
+
+  @Post('morpheus/upload')
+  @UseInterceptors(FileInterceptor('file'))
+  createBcProof(
+    @Body() body: Device,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    console.log(file);
+    return this.appService.createBcProof(body.id, file);
   }
 }

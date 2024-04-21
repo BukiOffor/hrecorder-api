@@ -1,4 +1,9 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import {
+  HttpException,
+  HttpStatus,
+  Injectable,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import {
   Crypto,
   Layer1,
@@ -9,19 +14,46 @@ import {
 import { AuthObject, User, WalletObject } from 'dto/user.dto';
 import { MongoClient } from 'mongodb';
 import { getUser } from '../utils';
-import { HydraWallet, MorpheusWallet } from 'dto/wallet.dto';
+import {
+  HydraWallet,
+  MorpheusWallet,
+  Operation,
+  OperationCertificate,
+} from 'dto/wallet.dto';
 import * as bcrypt from 'bcrypt';
 import { WitnessEvent } from 'dto/events.dto';
+import { sha256 } from 'js-sha256';
+class AdminKey {
+  privateKey: Crypto.HydraPrivate;
+  address: string;
+}
+
 @Injectable()
 export class AppService {
   private uri: string = process.env.URI;
   private database_name: string = 'HRecorder';
   private collection_name: string = 'Users';
+  private network: NetworkConfig = NetworkConfig.fromNetwork(Network.Testnet);
+  private password: string = process.env.password;
 
-  getHello(): string {
-    return process.env.URI;
+  private getAdminKey(): AdminKey {
+    const hydraPlugin: Crypto.HydraPlugin = this.getHydraPlugin(
+      process.env.hyd,
+    );
+    const privateKey: Crypto.HydraPrivate = hydraPlugin.priv(this.password);
+    const address: string = hydraPlugin.pub.key(0).address;
+    const admin: AdminKey = {
+      privateKey,
+      address,
+    };
+    return admin;
   }
 
+  waitUntil12Sec = (): Promise<void> => {
+    return new Promise((resolve) => {
+      return setTimeout(resolve, 12 * 1000);
+    });
+  };
   getMorpheusPlugin(vault_data: string): Crypto.MorpheusPlugin {
     const vault_json = JSON.parse(vault_data);
     const vault = Crypto.Vault.load(vault_json);
@@ -131,6 +163,70 @@ export class AppService {
     } catch (err) {
       console.log(err);
       throw new InternalServerErrorException('Something Went Wrong ');
+    }
+  }
+
+  async checkIfHashExistsInBlockchain(contentId: string): Promise<boolean> {
+    const layer2MorpheusApi = await Layer2.createMorpheusApi(this.network);
+    const history = await layer2MorpheusApi.getBeforeProofHistory(contentId);
+    if (history) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  async confirmSsiTransaction(txId: string): Promise<boolean> {
+    const layer1Api = await Layer1.createApi(this.network);
+    const layer2MorpheusApi = await Layer2.createMorpheusApi(this.network);
+    const txStatus = await layer1Api.getTxnStatus(txId);
+    if (txStatus.get().confirmations > 0) {
+      const ssiTxStatus = await layer2MorpheusApi.getTxnStatus(txId);
+      const result: boolean = ssiTxStatus.get();
+      return result;
+    }
+  }
+
+  async createBcProof(
+    device_id: string,
+    video: Express.Multer.File,
+  ): Promise<any> {
+    const media_hash: string = sha256(video.buffer);
+    const operation: Operation = {
+      device_id,
+      media_hash,
+    };
+    const beforeProof: string = Crypto.digestJson(operation);
+    const isExistent: boolean =
+      await this.checkIfHashExistsInBlockchain(beforeProof);
+    console.log(isExistent);
+    if (isExistent) {
+      throw new HttpException(
+        'Hash Already Exists on Chain',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    const morpheusBuilder = new Crypto.MorpheusAssetBuilder();
+    morpheusBuilder.addRegisterBeforeProof(beforeProof);
+    const morpheusAsset = morpheusBuilder.build();
+    const layer1Api = await Layer1.createApi(this.network);
+    const admin: AdminKey = this.getAdminKey();
+    const txId = await layer1Api.sendMorpheusTx(
+      admin.address,
+      morpheusAsset,
+      admin.privateKey,
+    );
+    // Wait for the Block confirmation time
+    await this.waitUntil12Sec();
+    const response: boolean = await this.confirmSsiTransaction(txId);
+    if (response) {
+      const certificate: OperationCertificate = {
+        device_id,
+        media_hash,
+        tx_id: txId,
+        bc_proof: beforeProof,
+      };
+      return certificate;
     }
   }
 }

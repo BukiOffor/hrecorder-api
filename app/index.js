@@ -1,7 +1,9 @@
 const app = require('express')();
+const multer = require('multer');
+const crypto = require('crypto');
 const bodyparser = require('body-parser');
 
-const functions = require('./classes/functions.js');
+//const functions = require('./classes/functions.js');
 
 require('dotenv').config();
 
@@ -11,6 +13,53 @@ app.listen(3000, () => {
 
 app.use(bodyparser.urlencoded({ extended: false }))
 app.use(bodyparser.json())
+
+function log(data){
+    console.log(data);
+}
+
+
+
+const upload = multer();
+
+// Define a route to handle video uploads
+app.post('/upload', upload.single('video'), (req, res) => {
+    log(req.body);
+    if (!req.body.video) {
+        return res.status(400).send('No file uploaded.');
+    }
+
+    // Read the uploaded video file
+    const videoBuffer = req.file.buffer;
+
+    // Calculate SHA256 hash of the video file
+    const hash = crypto.createHash('sha256');
+    hash.update(videoBuffer);
+
+    const videoHash = hash.digest('hex');
+    console.log('Video hash:', videoHash);
+
+    // Respond with success message
+    res.send(videoHash);
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 app.get('/', (req, res) => {
