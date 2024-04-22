@@ -30,7 +30,7 @@ export class AppController {
     return this.appService.signWitnessStatement(body);
   }
 
-  @Post('morpheus/upload')
+  @Post('event/upload')
   @UseInterceptors(FileInterceptor('file'))
   createBcProof(
     @Body() body: Device,
