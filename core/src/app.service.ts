@@ -128,6 +128,7 @@ export class AppService {
         morpheus_vault: morpheus.vault,
         wallet: hyd.address,
         did: morpheus.did,
+        hint: user.password_hint,
       };
       const wallet_object: WalletObject = {
         data,
@@ -197,37 +198,36 @@ export class AppService {
       media_hash,
     };
     const beforeProof: string = Crypto.digestJson(operation);
-    // const isExistent: boolean =
-    //   await this.checkIfHashExistsInBlockchain(beforeProof);
-    // console.log(isExistent);
-    // if (isExistent) {
-    //   throw new HttpException(
-    //     'Hash Already Exists on Chain',
-    //     HttpStatus.BAD_REQUEST,
-    //   );
-    // }
-    // const morpheusBuilder = new Crypto.MorpheusAssetBuilder();
-    // morpheusBuilder.addRegisterBeforeProof(beforeProof);
-    // const morpheusAsset = morpheusBuilder.build();
-    // const layer1Api = await Layer1.createApi(this.network);
-    // const admin: AdminKey = this.getAdminKey();
-    // const txId = await layer1Api.sendMorpheusTx(
-    //   admin.address,
-    //   morpheusAsset,
-    //   admin.privateKey,
-    // );
-    // // Wait for the Block confirmation time
-    // await this.waitUntil12Sec();
-    // const response: boolean = await this.confirmSsiTransaction(txId);
-    // if (response) {
-    //   const certificate: OperationCertificate = {
-    //     device_id,
-    //     media_hash,
-    //     tx_id: txId,
-    //     bc_proof: beforeProof,
-    //   };
-    //   return certificate;
-    // }
-    return beforeProof;
+    const isExistent: boolean =
+      await this.checkIfHashExistsInBlockchain(beforeProof);
+    console.log(isExistent);
+    if (isExistent) {
+      throw new HttpException(
+        'Hash Already Exists on Chain',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    const morpheusBuilder = new Crypto.MorpheusAssetBuilder();
+    morpheusBuilder.addRegisterBeforeProof(beforeProof);
+    const morpheusAsset = morpheusBuilder.build();
+    const layer1Api = await Layer1.createApi(this.network);
+    const admin: AdminKey = this.getAdminKey();
+    const txId = await layer1Api.sendMorpheusTx(
+      admin.address,
+      morpheusAsset,
+      admin.privateKey,
+    );
+    // Wait for the Block confirmation time
+    await this.waitUntil12Sec();
+    const response: boolean = await this.confirmSsiTransaction(txId);
+    if (response) {
+      const certificate: OperationCertificate = {
+        device_id,
+        media_hash,
+        tx_id: txId,
+        bc_proof: beforeProof,
+      };
+      return certificate;
+    }
   }
 }
