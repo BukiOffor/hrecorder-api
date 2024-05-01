@@ -230,4 +230,5 @@ export class AppService {
       return certificate;
     }
   }
+  async createWitnessRequest(event: object): Promise<any> {}
 }
