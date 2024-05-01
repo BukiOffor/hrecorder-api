@@ -230,5 +230,18 @@ export class AppService {
       return certificate;
     }
   }
-  async createWitnessRequest(event: object): Promise<any> {}
+  async createWitnessRequest(data: WitnessEvent): Promise<string> {
+    const morpheus = this.getMorpheusPlugin(data.vault);
+    const did: Crypto.Did = morpheus.pub.personas.did(0);
+    const keyId: Crypto.KeyId = did.defaultKeyId();
+    const Kpr: Crypto.MorpheusPrivate = morpheus.priv(data.password);
+    try {
+      console.log('Creating Witness Request');
+      const response = Kpr.signWitnessRequest(keyId, data.statement);
+      return JSON.stringify(response);
+    } catch (err) {
+      console.log(err);
+      throw new InternalServerErrorException('Something Went Wrong ');
+    }
+  }
 }

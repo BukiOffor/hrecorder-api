@@ -40,7 +40,7 @@ export class AppController {
     return this.appService.createBcProof(body.id, file);
   }
   @Post('morpheus/witness_request')
-  createWitnessRequest(@Body() body: object): Promise<any> {
+  createWitnessRequest(@Body() body: WitnessEvent): Promise<string> {
     return this.appService.createWitnessRequest(body);
   }
 }
