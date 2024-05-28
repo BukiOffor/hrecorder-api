@@ -33,7 +33,7 @@ export class AppService {
   private uri: string = process.env.URI;
   private database_name: string = 'HRecorder';
   private collection_name: string = 'Users';
-  private network: NetworkConfig = NetworkConfig.fromNetwork(Network.Testnet);
+  private network: NetworkConfig = NetworkConfig.fromNetwork(Network.Devnet);
   private password: string = process.env.password;
 
   private getAdminKey(): AdminKey {
@@ -241,7 +241,7 @@ export class AppService {
       return JSON.stringify(response);
     } catch (err) {
       console.log(err);
-      throw new InternalServerErrorException('Something Went Wrong ');
+      throw new InternalServerErrorException('Could not sign witness request ');
     }
   }
 }
