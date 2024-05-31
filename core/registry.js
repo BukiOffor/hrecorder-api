@@ -29,11 +29,11 @@ const witness_request = {
       },
       time: {
         nonce: '8e7a6790d678387',
-        value: '17:00 ',
+        value: '9008767654321 ',
       },
       location: {
         nonce: 'ABCD',
-        value: '72 Manchester Road, Manchester City',
+        value: '72 Manchester Road, Manchester',
       },
     },
   },

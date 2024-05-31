@@ -4,13 +4,7 @@ import {
   Injectable,
   InternalServerErrorException,
 } from '@nestjs/common';
-import {
-  Crypto,
-  Layer1,
-  Layer2,
-  Network,
-  NetworkConfig,
-} from '@internet-of-people/sdk';
+import { Crypto, Layer1, Layer2, NetworkConfig } from '@internet-of-people/sdk';
 import { AuthObject, User, WalletObject } from 'dto/user.dto';
 import { MongoClient } from 'mongodb';
 import { getUser } from '../utils';
@@ -33,7 +27,10 @@ export class AppService {
   private uri: string = process.env.URI;
   private database_name: string = 'HRecorder';
   private collection_name: string = 'Users';
-  private network: NetworkConfig = NetworkConfig.fromNetwork(Network.Devnet);
+  private network: NetworkConfig = NetworkConfig.fromUrl(
+    'https://dev.explorer.hydraledger.tech',
+    4705,
+  );
   private password: string = process.env.password;
 
   private getAdminKey(): AdminKey {
