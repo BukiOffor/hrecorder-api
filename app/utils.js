@@ -1,5 +1,5 @@
 // Import the necessary modules from our SDK
-import { Crypto, Layer1, Layer2, Network, NetworkConfig } from '@internet-of-people/sdk';
+const { Crypto, Layer1, Layer2, Network, NetworkConfig } = require('@internet-of-people/sdk');
 
 
 async function getMorpheusPlugin(vault_data,password){
@@ -15,11 +15,11 @@ async function getMorpheusPlugin(vault_data,password){
 
 
 async function getHydraPlugin(vault_data,password){
-    const network = Network.Testnet;
+    const network = Network.Devnet;
     let vault_json = JSON.parse(vault_data);
     let vault = Crypto.Vault.load(vault_json);
     const parameters = new Crypto.HydraParameters(
-        Crypto.Coin.Hydra.Testnet,
+        Crypto.Coin.Hydra.Devnet,
         0
       );
     //Crypto.HydraPlugin.init(vault, password, parameters);
@@ -39,7 +39,7 @@ function generate_phrase(){
 
 async function createHydVault(phrase,password){
     const vault = Crypto.Vault.create(phrase,'',password);
-    const parameters = new Crypto.HydraParameters(Crypto.Coin.Hydra.Testnet,0);
+    const parameters = new Crypto.HydraParameters(Crypto.Coin.Hydra.Devnet,0);
     // initialize Hydra Vault
     Crypto.HydraPlugin.init(vault, password, parameters);
     let hyd_vault = JSON.stringify(vault.save());
@@ -56,13 +56,19 @@ async function createMorpheusVault(phrase,password){
 
 
 
-const password = 'poppins';
-let hyd_v = "{\n  \"encryptedSeed\": \"ugy5aoxKELmkN2jyiIJv4kwJVV96dZhaF1gVlug1Nx5MB2ZKsCUb4fz0bR7XGgxF5ICIbmCnZI0THBaQmVz58yYegb2GKJCS9pPYLEQ6hVz7SGv719_Y4E8NdGJmsxjGYZsSXxYWDT-I\",\n  \"plugins\": [\n    {\n      \"pluginName\": \"Hydra\",\n      \"publicState\": {\n        \"xpub\": \"hydtVxFicd5g6PvgiyG58wYSUV7ECaPPtz361Mt4vvSGp8NqNYytsrfudqFydnMwvQ4ojTGccfRrh7RRvWAn2dJnvCD1R8PkSNCDZhDbmPecbKHZ\",\n        \"receiveKeys\": 1,\n        \"changeKeys\": 0\n      },\n      \"parameters\": {\n        \"network\": \"HYD testnet\",\n        \"account\": 0\n      }\n    }\n  ]\n}"
-let morpheus_v = "{\n  \"encryptedSeed\": \"umZYhtcky_-5DNbK54qzC5m2V-uKLDVEwT-f_3-PJvkIbOykHBsg45dQkjJRl-COs2o9oLGGHieYKqssh9UnDy_r9ii6mc-UsKuUWdwfBywv48ikHHF4f05fORIy8fNQ4JfrDFj5jJ9o\",\n  \"plugins\": [\n    {\n      \"pluginName\": \"Morpheus\",\n      \"parameters\": {},\n      \"publicState\": {\n        \"personas\": [\n          \"pezEPVBRHyNaM5FR9PCHzbQdakTNpMT5jTXqVEcr3Je6mTS\"\n        ]\n      }\n    }\n  ]\n}"
+let hy =  "{\"encryptedSeed\":\"uhYKsgAUwyqZoWCWIAYbD6o1M9EPXBG9YMQi5DQi-zPh1yv5VDiHVWnA3IXf0xAaEx2eh8ybjGVgQAY_s1NG8XhQsYkSBTMbN-6_QxPsihX7rYzVXd8h0R0Oa0JbaFddhvOm8Of7iDS4\",\"plugins\":[{\"pluginName\":\"Hydra\",\"publicState\":{\"xpub\":\"hyddW4BHhYssWNSbUKamHCQLL9XvQq95VKu4zpAinnxQeapauinbobWypU8xt2RaZJdPXhoiSMs9MNo8VRvfhRKsXz5bTDTLM2GbbUQfLRMZKWW6\",\"receiveKeys\":1,\"changeKeys\":0},\"parameters\":{\"network\":\"HYD devnet\",\"account\":0}}]}"
+const mo =  "{\"encryptedSeed\":\"uiZZp4-sxAH-35RdlpakFiEbemib96JGJ6bUO8oNpM45imbkrkvsud96f8H93URr7JCAFakJ4rFRyZELQsOCJx8sV_WYWkIzgzwq0l8lfuftBOwhRfNNPPJZ2inVpVA1OkrzapDYA2zY\",\"plugins\":[{\"pluginName\":\"Morpheus\",\"parameters\":{},\"publicState\":{\"personas\":[\"pez4ZMMRisFts2hiCLyQebonmGTNb8eSAPwsNrrKi3euojD\"]}}]}"
 
-getMorpheusPlugin(hyd_v,password).then((res) => {
+getMorpheusPlugin(mo,"").then((res) => {
     console.log("Response: ", res);
+    
+}).catch((err) => {
+    console.log(err);
+});
 
+getHydraPlugin(hy,"").then((res) => {
+    console.log("Response: ", res);
+    
 }).catch((err) => {
     console.log(err);
 });

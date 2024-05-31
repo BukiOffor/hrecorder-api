@@ -32,11 +32,12 @@ export class AppService {
     4705,
   );
   private password: string = process.env.password;
-
+  private morpheus: string =
+    '{"encryptedSeed":"uiZZp4-sxAH-35RdlpakFiEbemib96JGJ6bUO8oNpM45imbkrkvsud96f8H93URr7JCAFakJ4rFRyZELQsOCJx8sV_WYWkIzgzwq0l8lfuftBOwhRfNNPPJZ2inVpVA1OkrzapDYA2zY","plugins":[{"pluginName":"Morpheus","parameters":{},"publicState":{"personas":["pez4ZMMRisFts2hiCLyQebonmGTNb8eSAPwsNrrKi3euojD"]}}]}';
+  private hyd: string =
+    '{"encryptedSeed":"uhYKsgAUwyqZoWCWIAYbD6o1M9EPXBG9YMQi5DQi-zPh1yv5VDiHVWnA3IXf0xAaEx2eh8ybjGVgQAY_s1NG8XhQsYkSBTMbN-6_QxPsihX7rYzVXd8h0R0Oa0JbaFddhvOm8Of7iDS4","plugins":[{"pluginName":"Hydra","publicState":{"xpub":"hyddW4BHhYssWNSbUKamHCQLL9XvQq95VKu4zpAinnxQeapauinbobWypU8xt2RaZJdPXhoiSMs9MNo8VRvfhRKsXz5bTDTLM2GbbUQfLRMZKWW6","receiveKeys":1,"changeKeys":0},"parameters":{"network":"HYD devnet","account":0}}]}';
   private getAdminKey(): AdminKey {
-    const hydraPlugin: Crypto.HydraPlugin = this.getHydraPlugin(
-      process.env.hyd,
-    );
+    const hydraPlugin: Crypto.HydraPlugin = this.getHydraPlugin(this.hyd);
     const privateKey: Crypto.HydraPrivate = hydraPlugin.priv(this.password);
     const address: string = hydraPlugin.pub.key(0).address;
     const admin: AdminKey = {
@@ -61,7 +62,7 @@ export class AppService {
   getHydraPlugin(vault_data: string): Crypto.HydraPlugin {
     const vault_json = JSON.parse(vault_data);
     const vault = Crypto.Vault.load(vault_json);
-    const parameters = new Crypto.HydraParameters(Crypto.Coin.Hydra.Testnet, 0);
+    const parameters = new Crypto.HydraParameters(Crypto.Coin.Hydra.Devnet, 0);
     const hydraPlugin = Crypto.HydraPlugin.get(vault, parameters);
     return hydraPlugin;
   }
@@ -73,7 +74,7 @@ export class AppService {
 
   createHydVault(phrase: string, password: string): HydraWallet {
     const vault = Crypto.Vault.create(phrase, '', password);
-    const parameters = new Crypto.HydraParameters(Crypto.Coin.Hydra.Testnet, 0);
+    const parameters = new Crypto.HydraParameters(Crypto.Coin.Hydra.Devnet, 0);
     // initialize Hydra Vault
     Crypto.HydraPlugin.init(vault, password, parameters);
     const hydraPlugin = Crypto.HydraPlugin.get(vault, parameters);
@@ -205,6 +206,8 @@ export class AppService {
         HttpStatus.BAD_REQUEST,
       );
     }
+    console.log('txId: ');
+
     const morpheusBuilder = new Crypto.MorpheusAssetBuilder();
     morpheusBuilder.addRegisterBeforeProof(beforeProof);
     const morpheusAsset = morpheusBuilder.build();
@@ -215,6 +218,7 @@ export class AppService {
       morpheusAsset,
       admin.privateKey,
     );
+    console.log('txId: ', txId);
     // Wait for the Block confirmation time
     await this.waitUntil12Sec();
     const response: boolean = await this.confirmSsiTransaction(txId);
