@@ -168,7 +168,7 @@ export class AppService {
     const layer2MorpheusApi = await Layer2.createMorpheusApi(this.network);
     const history = await layer2MorpheusApi.getBeforeProofHistory(contentId);
     console.log(history);
-    if (history) {
+    if (history.existsFromHeight != null) {
       return true;
     } else {
       return false;
