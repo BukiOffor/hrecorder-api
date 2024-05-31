@@ -167,6 +167,7 @@ export class AppService {
   async checkIfHashExistsInBlockchain(contentId: string): Promise<boolean> {
     const layer2MorpheusApi = await Layer2.createMorpheusApi(this.network);
     const history = await layer2MorpheusApi.getBeforeProofHistory(contentId);
+    console.log(history);
     if (history) {
       return true;
     } else {
