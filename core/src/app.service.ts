@@ -246,4 +246,9 @@ export class AppService {
       throw new InternalServerErrorException('Could not sign witness request ');
     }
   }
+  async queryBcProof(contentId: string): Promise<object> {
+    const layer2MorpheusApi = await Layer2.createMorpheusApi(this.network);
+    const history = await layer2MorpheusApi.getBeforeProofHistory(contentId);
+    return history;
+  }
 }

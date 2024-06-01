@@ -2,8 +2,10 @@ import {
   Controller,
   Body,
   Post,
+  Get,
   UseInterceptors,
   UploadedFile,
+  Param,
 } from '@nestjs/common';
 import { AuthObject, User, WalletObject } from 'dto/user.dto';
 import { AppService } from './app.service';
@@ -42,5 +44,9 @@ export class AppController {
   @Post('morpheus/witness_request')
   createWitnessRequest(@Body() body: WitnessEvent): Promise<string> {
     return this.appService.createWitnessRequest(body);
+  }
+  @Get('bc/query/:contentId')
+  queryBcProof(@Param() params: any): Promise<object> {
+    return this.appService.queryBcProof(params.contentId);
   }
 }
