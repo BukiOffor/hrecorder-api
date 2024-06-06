@@ -7,7 +7,7 @@ import {
 import { Crypto, Layer1, Layer2, NetworkConfig } from '@internet-of-people/sdk';
 import { AuthObject, User, WalletObject } from 'dto/user.dto';
 import { MongoClient } from 'mongodb';
-import { getUser } from '../utils';
+import { getUser, fetchUserByEmail } from '../utils';
 import {
   HydraWallet,
   MorpheusWallet,
@@ -147,6 +147,10 @@ export class AppService {
     const user = await getUser(auth.id);
     const isMatch = await bcrypt.compare(auth.password, user.password);
     return isMatch;
+  }
+
+  async fetchUserWithEmail(email: string): Promise<any> {
+    return await fetchUserByEmail(email);
   }
 
   async signWitnessStatement(data: WitnessEvent): Promise<string> {

@@ -49,4 +49,9 @@ export class AppController {
   queryBcProof(@Param() params: any): Promise<object> {
     return this.appService.queryBcProof(params.contentId);
   }
+
+  @Get('user/:email')
+  getUser(@Param() params: any): Promise<object> {
+    return this.appService.fetchUserWithEmail(params.email);
+  }
 }

@@ -16,6 +16,22 @@ export async function getUser(id) {
   }
 }
 
+export async function fetchUserByEmail(email: string) {
+  const client = new MongoClient(process.env.URI);
+  await client.connect();
+  const db = client.db('HRecorder');
+  const collection = db.collection('Users');
+  const findOneQuery = { email: email };
+  try {
+    const response = await collection.findOne(findOneQuery);
+    await client.close();
+    return response;
+  } catch (err) {
+    await client.close();
+    console.error(`Something went wrong trying to find one user: ${err}\n`);
+  }
+}
+
 function u8ToHex(u8: number): string {
   return u8.toString(16).padStart(2, '0');
 }
