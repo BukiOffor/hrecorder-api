@@ -5,7 +5,7 @@ import {
   InternalServerErrorException,
 } from '@nestjs/common';
 import { Crypto, Layer1, Layer2, NetworkConfig } from '@internet-of-people/sdk';
-import { AuthObject, User, WalletObject } from 'dto/user.dto';
+import { AuthObject, Cid, CidObject, User, WalletObject } from 'dto/user.dto';
 import { MongoClient } from 'mongodb';
 import { getUser, fetchUserByEmail } from '../utils';
 import {
@@ -117,6 +117,7 @@ export class AppService {
       user.wallet = hyd.address;
       user.did = morpheus.did;
       user.password = await bcrypt.hash(password, 10);
+      user.cid = [];
       const response = await collection.insertOne(user);
       console.log(`${response.insertedId} successfully inserted.\n`);
       const id = response.insertedId;
@@ -141,6 +142,34 @@ export class AppService {
       );
       throw new InternalServerErrorException('Something Went Wrong ');
     }
+  }
+
+  async setCid(args: CidObject): Promise<object> {
+    const client = new MongoClient(process.env.uri);
+    await client.connect();
+    const db = client.db(this.database_name);
+    const collection = db.collection(this.collection_name);
+    const query = { username: args.user };
+    try {
+      const result = await collection.findOne(query);
+      const cid: Cid = { cid: args.cid, name: args.name };
+      const cidList = result.cid.append(cid);
+      const findOneResult = await collection.updateOne(query, {
+        $set: { cid: cidList },
+      });
+      if (findOneResult.modifiedCount === 1) {
+        console.log(`${args.user} updated with new cid ${args.cid} .\n`);
+        return { status: 'success', message: 'Cid updated succesfully' };
+      } else {
+        return { status: 'failed', message: 'Cid not updated' };
+      }
+    } catch (err) {
+      console.error(
+        `Something went wrong trying to update one document: ${err}\n`,
+      );
+      await client.close();
+    }
+    await client.close();
   }
 
   async basicAuth(auth: AuthObject): Promise<boolean> {

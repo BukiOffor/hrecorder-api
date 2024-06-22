@@ -1,4 +1,5 @@
 import { MongoClient, ObjectId } from 'mongodb';
+import { Cid, CidObject } from 'dto/user.dto';
 
 export async function getUser(id) {
   const client = new MongoClient(process.env.URI);
@@ -30,6 +31,31 @@ export async function fetchUserByEmail(email: string) {
     await client.close();
     console.error(`Something went wrong trying to find one user: ${err}\n`);
   }
+}
+
+export async function setCid(args: CidObject) {
+  const client = new MongoClient(process.env.uri);
+  await client.connect();
+  const database = client.db('HRecorder');
+  const collection = database.collection('Users');
+  const query = { username: args.user };
+  try {
+    const result = await collection.findOne(query);
+    const cid: Cid = { cid: args.cid, name: args.name };
+    const cidList = result.append(cid);
+    const findOneResult = await collection.updateOne(query, {
+      $set: { cid: cidList },
+    });
+    if (findOneResult.modifiedCount === 1) {
+      console.log(`${args.user} updated with new cid ${args.cid} .\n`);
+      return true;
+    }
+  } catch (err) {
+    console.error(
+      `Something went wrong trying to update one document: ${err}\n`,
+    );
+  }
+  await client.close();
 }
 
 function u8ToHex(u8: number): string {

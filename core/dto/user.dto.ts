@@ -12,6 +12,7 @@ export class User {
   city?: string;
   did?: string;
   wallet?: string;
+  cid: Array<Cid>;
 }
 
 export class WalletObject {
@@ -22,4 +23,13 @@ export class WalletObject {
 export class AuthObject {
   id: string;
   password: string;
+}
+
+export class Cid {
+  cid: string;
+  name: string;
+}
+
+export class CidObject extends Cid {
+  user: string;
 }

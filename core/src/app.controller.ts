@@ -7,7 +7,7 @@ import {
   UploadedFile,
   Param,
 } from '@nestjs/common';
-import { AuthObject, User, WalletObject } from 'dto/user.dto';
+import { AuthObject, CidObject, User, WalletObject } from 'dto/user.dto';
 import { AppService } from './app.service';
 import { WitnessEvent } from 'dto/events.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -53,5 +53,9 @@ export class AppController {
   @Get('user/:email')
   getUser(@Param() params: any): Promise<object> {
     return this.appService.fetchUserWithEmail(params.email);
+  }
+  @Post('user/set-cid')
+  updateUser(@Body() body: CidObject): Promise<object> {
+    return this.appService.setCid(body);
   }
 }
