@@ -156,7 +156,7 @@ export class AppService {
       console.log(result);
       result.cid.push(cid);
       const findOneResult = await collection.updateOne(query, {
-        $set: { cid: result },
+        $set: { cid: result.cid },
       });
       if (findOneResult.modifiedCount === 1) {
         console.log(`${args.username} updated with new cid ${args.cid} .\n`);
