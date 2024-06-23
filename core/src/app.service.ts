@@ -145,20 +145,21 @@ export class AppService {
   }
 
   async setCid(args: CidObject): Promise<object> {
-    const client = new MongoClient(process.env.uri);
+    const client = new MongoClient(this.uri);
     await client.connect();
     const db = client.db(this.database_name);
     const collection = db.collection(this.collection_name);
-    const query = { username: args.user };
+    const query = { username: args.username };
     try {
       const result = await collection.findOne(query);
       const cid: Cid = { cid: args.cid, name: args.name };
-      const cidList = result.cid.append(cid);
+      console.log(result);
+      result.cid.push(cid);
       const findOneResult = await collection.updateOne(query, {
-        $set: { cid: cidList },
+        $set: { cid: result },
       });
       if (findOneResult.modifiedCount === 1) {
-        console.log(`${args.user} updated with new cid ${args.cid} .\n`);
+        console.log(`${args.username} updated with new cid ${args.cid} .\n`);
         return { status: 'success', message: 'Cid updated succesfully' };
       } else {
         return { status: 'failed', message: 'Cid not updated' };

@@ -31,5 +31,5 @@ export class Cid {
 }
 
 export class CidObject extends Cid {
-  user: string;
+  username: string;
 }

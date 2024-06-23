@@ -38,7 +38,7 @@ export async function setCid(args: CidObject) {
   await client.connect();
   const database = client.db('HRecorder');
   const collection = database.collection('Users');
-  const query = { username: args.user };
+  const query = { username: args.username };
   try {
     const result = await collection.findOne(query);
     const cid: Cid = { cid: args.cid, name: args.name };
@@ -47,7 +47,7 @@ export async function setCid(args: CidObject) {
       $set: { cid: cidList },
     });
     if (findOneResult.modifiedCount === 1) {
-      console.log(`${args.user} updated with new cid ${args.cid} .\n`);
+      console.log(`${args.username} updated with new cid ${args.cid} .\n`);
       return true;
     }
   } catch (err) {
