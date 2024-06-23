@@ -153,7 +153,6 @@ export class AppService {
     try {
       const result = await collection.findOne(query);
       const cid: Cid = { cid: args.cid, name: args.name };
-      console.log(result);
       result.cid.push(cid);
       const findOneResult = await collection.updateOne(query, {
         $set: { cid: result.cid },
